@@ -41,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
+RNG_HandleTypeDef hrng;
 
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
@@ -49,6 +50,7 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_RNG_Init(void);
 /* USER CODE BEGIN PFP */
 #if defined (__ICCARM__) || defined (__ARMCC_VERSION)
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
@@ -56,6 +58,7 @@ static void MX_USART1_UART_Init(void);
 #elif defined(__GNUC__)
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #define GETCHAR_PROTOTYPE int __io_getchar(void)
+__IO uint32_t    RNGStatus = 0;
 
 GETCHAR_PROTOTYPE;
 #endif /* __ICCARM__ || __ARMCC_VERSION */
@@ -106,6 +109,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_RNG_Init();
+
   /* USER CODE BEGIN 2 */
 
   /* Output a message on Hyperterminal using printf function */
@@ -121,11 +126,21 @@ int main(void)
   receivedchar= ' ';
   while(receivedchar!= '\n' && receivedchar != '\r')
   {
-#if defined (__ICCARM__) || defined (__ARMCC_VERSION)
-	receivedchar = fgetc(stdin);
-#elif defined(__GNUC__)
-	receivedchar = __io_getchar();
-#endif /* __ICCARM__ || __ARMCC_VERSION */
+//    RNGStatus = 1;
+  	receivedchar = __io_getchar();
+    do {
+      uint32_t v;
+      if (HAL_RNG_GenerateRandomNumber(&hrng, &v) != HAL_OK) {
+        fflush (stdout);
+        printf("\n> RNG ERROR %lu %lu\n\n", hrng.ErrorCode, hrng.State);
+        while (1);
+      }
+      else {
+        printf("> %lu\n", v);
+      }
+    } while(1);
+    fflush (stdout);
+    fflush (stdout);
   }
 
   /* End of example */
@@ -139,7 +154,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    printf(".\n");
+//    printf(".\n");
     fflush(stdout);
     HAL_Delay(100);
     /* USER CODE BEGIN 3 */
@@ -194,6 +209,33 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+  /* USER CODE BEGIN RNG_Init 0 */
+
+  /* USER CODE END RNG_Init 0 */
+
+  /* USER CODE BEGIN RNG_Init 1 */
+
+  /* USER CODE END RNG_Init 1 */
+  hrng.Instance = RNG;
+  hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
+  if (HAL_RNG_Init(&hrng) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RNG_Init 2 */
+
+  /* USER CODE END RNG_Init 2 */
+
 }
 
 /**
@@ -287,8 +329,6 @@ GETCHAR_PROTOTYPE
   return ch;
 }
 
-/* USER CODE END 4 */
-
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
@@ -299,7 +339,14 @@ void Error_Handler(void)
   /* User can add his own implementation to report the HAL error return state */
   /* Turn LED3 on */
   //BSP_LED_On(LED3);
-  while (1);
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  while(1)
+  {
+    /* Toggle LED3 */
+    //BSP_LED_Toggle(LED3);
+    HAL_Delay(500);
+  }
   /* USER CODE END Error_Handler_Debug */
 }
 
